@@ -327,3 +327,32 @@ code { font-family: var(--mono); font-size: .92em; color: var(--muted); }
 
 html[data-theme="light"] .home-btn { background: rgba(255, 255, 255, .82); }
 html[data-theme="light"] .home-btn { background: color-mix(in srgb, var(--panel) 82%, transparent); }
+
+/* ---------- a game that isn't where the registry says it is ---------- */
+
+.stage-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 calc(var(--pad) + 4px);
+  padding-top: var(--safe-t);
+}
+.stage-error h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.stage-error p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+.stage-error p.fix { font-size: 12.5px; }
+.stage-error code {
+  font-family: var(--mono);
+  font-size: .92em;
+  color: var(--amber);
+  word-break: break-all;
+}
