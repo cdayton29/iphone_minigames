@@ -6,6 +6,12 @@
 
 const $ = (sel) => document.querySelector(sel);
 
+/* Paths in games.json are relative to THIS folder, not to whatever URL the
+   browser is showing. Without this, a hub served at /arcade (no trailing
+   slash) would look for games at /games/... and 404. */
+const HERE = new URL('./', import.meta.url);
+const abs = (path) => new URL(path, HERE).href;
+
 const els = {
   hub:      $('#hub'),
   grid:     $('#grid'),
@@ -77,7 +83,7 @@ async function loadGames() {
   try {
     // Network first so a freshly deployed game shows up straight away;
     // the service worker answers from cache when there is no signal.
-    const res = await fetch('games.json', { cache: 'no-cache' });
+    const res = await fetch(abs('games.json'), { cache: 'no-cache' });
     if (!res.ok) throw new Error(`games.json returned ${res.status}`);
     games = normalize(await res.json());
   } catch (err) {
@@ -122,7 +128,7 @@ function render() {
     well.className = 'well';
     if (game.icon) {
       const img = document.createElement('img');
-      img.src = game.icon;
+      img.src = abs(game.icon);
       img.alt = '';
       img.loading = 'lazy';
       well.append(img);
@@ -171,7 +177,9 @@ function launch(id, pushState) {
   frame.className = 'frame';
   frame.title = game.title;
   frame.setAttribute('allow', 'autoplay; fullscreen');
-  frame.src = `${game.path}${game.entry}?theme=${resolvedTheme()}`;
+  const src = new URL(game.path + game.entry, HERE);
+  src.searchParams.set('theme', resolvedTheme());
+  frame.src = src.href;
   els.stage.textContent = '';
   els.stage.append(frame);
 
@@ -185,6 +193,34 @@ function launch(id, pushState) {
 
   // A history entry means the iOS back-swipe returns to the menu too.
   if (pushState) history.pushState({ game: id }, '', `#${id}`);
+
+  confirmReachable(game, frame);
+}
+
+/** The iframe shows the server's 404 page on a bad path. Say something clearer. */
+async function confirmReachable(game, myFrame) {
+  const target = new URL(game.path + game.entry, HERE).href;
+  let problem = null;
+
+  try {
+    const res = await fetch(target);
+    if (!res.ok) problem = `the server answered ${res.status}`;
+  } catch {
+    problem = 'it is not cached and there is no connection';
+  }
+
+  if (!problem || frame !== myFrame) return;
+
+  const panel = document.createElement('div');
+  panel.className = 'stage-error';
+  panel.innerHTML =
+    `<h2>${game.title} didn't load</h2>` +
+    `<p>Looked for <code>${target.replace(HERE.href, '')}</code> — ${problem}.</p>` +
+    `<p class="fix">Check the <code>path</code> in games.json against the folder name, then bump ` +
+    `<code>CACHE_NAME</code> in sw.js.</p>`;
+
+  els.stage.textContent = '';
+  els.stage.append(panel);
 }
 
 function close(popHistory) {
@@ -254,7 +290,7 @@ async function initServiceWorker() {
   const hadController = !!navigator.serviceWorker.controller;
 
   try {
-    const reg = await navigator.serviceWorker.register('sw.js');
+    const reg = await navigator.serviceWorker.register(abs('sw.js'));
 
     // A waiting worker means new assets are already downloaded.
     const offerUpdate = (worker) => {
