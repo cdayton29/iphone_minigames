@@ -1,9 +1,6 @@
-# Arcade
-
+Arcade
 An offline-first PWA shelf for small games, built for an iPhone home screen. Pure HTML, CSS and vanilla JS — no build step, no dependencies.
-
-## Files
-
+Files
 ```
 index.html          hub shell + iOS meta tags
 styles.css          hub styling (dark / light)
@@ -16,20 +13,15 @@ games/
   solitaire/  index.html  script.js  icon.png
   sudoku/     index.html  script.js  icon.png
 ```
-
-## Adding a game
-
-**1. Make the folder.** Anything self-contained works:
-
+Adding a game
+1. Make the folder. Anything self-contained works:
 ```
 games/minesweeper/
   index.html      ← the entry point
   script.js       ← cached automatically by folder convention
   icon.png        ← 256×256 works well
 ```
-
-**2. Add one entry to `games.json`:**
-
+2. Add one entry to `games.json`:
 ```json
 {
   "id": "minesweeper",
@@ -40,46 +32,33 @@ games/minesweeper/
   "accent": "#7C9CFF"
 }
 ```
-
 `id`, `title`, `icon` and `path` are required. `subtitle` and `accent` (the colour of the card's spine) are optional. Two more optional keys:
-
-- `entry` — if your entry file isn't `index.html`
-- `assets` — extra files to cache: `["games/minesweeper/sprites.png", "games/minesweeper/audio.js"]`
-
-**3. Bump the cache** in `sw.js`:
-
+`entry` — if your entry file isn't `index.html`
+`assets` — extra files to cache: `["games/minesweeper/sprites.png", "games/minesweeper/audio.js"]`
+3. Bump the cache in `sw.js`:
 ```js
 const CACHE_NAME = 'arcade-v2';   // was arcade-v1
 ```
-
 This is the step that makes iOS fetch the new files. Skip it and the phone will happily keep serving the old bundle forever. On next launch the hub shows a "New version downloaded" pill; tapping Reload swaps it in — never mid-game.
-
 The hub reads `games.json` at launch and the service worker re-reads it at install, so nothing else needs touching. `hub.js` never has to change.
-
-### What a game gets for free
-
-- **Return to menu** — the floating Menu button lives in the hub, over the iframe, so it works no matter what the game does. A game can also request it: `parent.postMessage({ type: 'arcade:exit' }, '*')`.
-- **Theme** — the hub passes `?theme=dark` or `?theme=light` on the URL and posts `{ type: 'theme', theme }` when it changes.
-- **Deep links** — `.../#sudoku` opens straight into that game.
-
+What a game gets for free
+Return to menu — the floating Menu button lives in the hub, over the iframe, so it works no matter what the game does. A game can also request it: `parent.postMessage({ type: 'arcade:exit' }, '*')`.
+Theme — the hub passes `?theme=dark` or `?theme=light` on the URL and posts `{ type: 'theme', theme }` when it changes.
+Deep links — `.../#sudoku` opens straight into that game.
 Keep the top-left ~120px of your game's UI clear; that's where the Menu button sits.
-
-## Running it
-
+Running it
 Service workers need HTTP, so `file://` won't do. Locally:
-
 ```bash
 python3 -m http.server 8000
 ```
-
 Then open `http://localhost:8000`.
-
-**Deploying:** push to a GitHub Pages repo or drag the folder onto Netlify. Everything resolves relatively, so project subpaths like `user.github.io/arcade/` work as-is.
-
-**Installing on iPhone:** open the URL in Safari → Share → Add to Home Screen. Launch from the icon and the address bar is gone. Let it sit on the shelf for a moment on first launch so the service worker can finish caching, then it plays with no signal at all.
-
-## The two sample games
-
-**Solitaire** — Klondike, draw one. Tap a card to pick it up, tap a pile to drop it; double-tap sends a card to the foundations. Collect pulls up everything that's safe, Undo goes back 200 moves.
-
-**Sudoku** — puzzles are generated on the device, with a uniqueness check on every dig, so each one has exactly one solution. Four levels, pencil marks, hints, and a Check that flags wrong entries for a couple of seconds.
+Deploying: push to a GitHub Pages repo or drag the folder onto Netlify. Everything resolves relatively, so project subpaths like `user.github.io/arcade/` work as-is.
+Installing on iPhone: open the URL in Safari → Share → Add to Home Screen. Launch from the icon and the address bar is gone. Let it sit on the shelf for a moment on first launch so the service worker can finish caching, then it plays with no signal at all.
+If a game shows a 404
+The hub resolves every path in `games.json` against `hub.js`'s own folder, so both `/arcade` and `/arcade/` work. If a game still fails, the stage says what it looked for and why. Usual causes:
+`path` in `games.json` doesn't match the folder name (it is case-sensitive on GitHub Pages and Netlify, so `Solitaire/` ≠ `solitaire/`)
+the folder didn't get committed — check `games/<name>/index.html` is actually in the repo
+you added the game but didn't bump `CACHE_NAME`, so the phone is still serving the old registry
+The two sample games
+Solitaire — Klondike, draw one. Tap a card to pick it up, tap a pile to drop it; double-tap sends a card to the foundations. Collect pulls up everything that's safe, Undo goes back 200 moves.
+Sudoku — puzzles are generated on the device, with a uniqueness check on every dig, so each one has exactly one solution. Four levels, pencil marks, hints, and a Check that flags wrong entries for a couple of seconds.
